@@ -1,0 +1,106 @@
+{% extends 'base_generic.html' %}
+
+{% block content %}
+<div id=playlist class="row row-cols-1 row-cols-md-4 loader">
+  <!-- {% for playlist in playlists %}
+<div class="card m-2 bg-light" style="width: 18rem;">
+{% if platform == 'Spotify' %}
+<img class="card-img-top" src={{playlist.images.0.url}} alt="Card image cap">
+  <div class="card-body">
+    <h5 class="card-title">{{playlist.name}}</h5>
+    <p class="card-text">{{playlist.description}}</p>
+    <a href={{playlist.external_urls.spotify}} class="btn btn-primary">To playlist</a>
+  </div>
+</div>
+{% elif platform == 'YTMusic'%}
+<img class="card-img-top" src={{playlist.thumbnails.1.url}} alt="Card image cap">
+  <div class="card-body">
+    <h5 class="card-title">{{playlist.title}}</h5>
+    <p class="card-text">{{playlist.description}}</p>
+    <a href={{playlist.url}} class="btn btn-primary">To playlist</a>
+  </div>
+</div>
+{% endif %}
+  
+{% empty %}
+<p> No playlists to show </p>
+{% endfor %} -->
+</div>
+<div class="d-none" role="alert" id='success-link'>
+  <a class=nav-link href = "{% url 'home' %}"> Go back home </a> 
+</div>
+
+<script>
+  let playlistEl = document.getElementById("playlist")
+  let loaded = false
+  const loadPlaylists = function (playlistElement) {
+    const xhr = new XMLHttpRequest() //declaring a new class of XMLHttpRequest
+    const method = 'GET'
+    let url = null
+    if ('{{platform}}' == 'spotify') {
+
+      url = '/api/spotify/playlists'
+    } else if ('{{platform}}' == 'ytmusic') {
+      url = '/api/YTMusic/playlists'
+    } else {
+      const url = null
+    }
+    console.log(url)
+    const responseType = 'json'
+    xhr.responseType = responseType
+    xhr.open(method, url)
+    xhr.onload = function () {
+      const serverResponse = xhr.response
+      let finalElement = ""
+      if (serverResponse == null) {
+        if ('{{platform}}' == 'spotify'){
+          location.reload()
+        } else if ('{{platform}}' == 'ytmusic') {
+          finalElement = "Error validating request to"
+          document.getElementById('success-link').classList.remove("d-none")
+        }
+      } else {
+
+        for (let i = 0; i < serverResponse.length; i++) {
+          let currPlaylist = formatPlaylists(serverResponse[i])
+          finalElement += currPlaylist
+        }
+      }
+
+      playlistElement.classList.remove("loader")
+      playlistElement.innerHTML = finalElement
+
+    }
+    xhr.send()
+  }
+
+  function formatPlaylists(playlist) {
+    let formattedPlaylist = `<div class="card m-2 bg-light" style="width: 18rem;"> <img class="card-img-top" src=` + playlist.image + ` 
+      alt="Card image cap"> <div class="card-body"> <h5 class="card-title">` + playlist.title + `</h5> 
+      <p class="card-text">` + playlist.description + `</p> <a href=` + playlist.url + ` class="btn btn-primary">To playlist</a> </div> </div>`
+    return formattedPlaylist
+  }
+
+
+  loadPlaylists(playlistEl)
+</script>
+
+<style>
+  .loader {
+    border: 16px solid #f3f3f3; /* Light grey */
+    border-top: 16px solid #3498db; /* Blue */
+    border-radius: 50%;
+    width: 120px;
+    height: 120px;
+    animation: spin 2s linear infinite;
+  }
+
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+
+</style>
+
+
+{% endblock content %} 

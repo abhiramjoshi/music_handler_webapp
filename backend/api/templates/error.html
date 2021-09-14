@@ -1,0 +1,9 @@
+{% extends 'base_generic.html' %}
+
+{% block content %}
+    <h1> We encountered an error! </h1>
+    <strong>Error:</strong> {{ error }}
+
+    <a class=nav-link href = "{% url 'home' %}"> Go back home </a> 
+{% endblock content %}
+

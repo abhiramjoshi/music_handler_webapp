@@ -1,0 +1,9 @@
+{% extends 'base_generic.html' %}
+
+{% block content %}
+    <h1> Success! </h1>
+    {{ success_message }}
+
+    <a class=nav-link href = "{% url 'home' %}"> Go back home </a> 
+{% endblock content %}
+

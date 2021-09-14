@@ -1,0 +1,33 @@
+{% extends 'base_generic.html' %}
+
+{% block content %}
+    <h1> Playlist Manager </h1>
+{% if user.is_authenticated %}
+    <p> First staged of playlist manger tool. The tool will allow you to merge and clean up your streaming
+    service playlists. Select to view a streming service library </p>
+    <a href="{% url 'spotify_landing' %}" class="btn btn-success" tabindex="-1" role="button" aria-disabled="true">
+        Spotify Library
+    </a>
+    <a href="{% url 'ytmusic_landing' %}" class="btn btn-danger" tabindex="-1" role="button" aria-disabled="true">
+        YTMusic Library
+    </a>
+    <a href="{% url 'apple_authorization' %}" class="btn btn-dark" tabindex="-1" role="button" aria-disabled="true">
+        Apple Music Library
+    </a>
+{% else %}
+    
+    <p> First staged of playlist manger tool. The tool will allow you to merge and clean up your streaming
+    service playlists. Login below to get started </p>
+    <a href="{% url 'spotify_authorization' %}" class="btn btn-success" tabindex="-1" role="button" aria-disabled="true">
+        Connect Spotify
+    </a>
+    <a href="{% url 'ytmusic_authorization' %}" class="btn btn-danger" tabindex="-1" role="button" aria-disabled="true">
+        Connect YTMusic
+    </a>
+    <a href="{% url 'apple_authorization' %}" class="btn btn-dark" tabindex="-1" role="button" aria-disabled="true">
+        Connect Apple Music
+    </a>
+{% endif%}
+
+{% endblock content %}
+

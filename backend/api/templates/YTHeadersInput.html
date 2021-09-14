@@ -1,0 +1,97 @@
+{% extends 'base_generic.html' %}
+
+{% block content %}
+{% if form.errors %}
+<div>
+    {{form.errors}}
+</div>
+{% endif %}
+
+<div id='main-div'>
+    <form class='form' id='headers-form' method='POST' action='/api/authorize/YTMusic'>
+        {% csrf_token %}
+        <input type='hidden' value='/' , name='next' />
+        <div class="form-group">
+            <label for="cookieInput">Cookies</label>
+            <input type="text" class="form-control" name='cookie' id="cookieInput" placeholder="Enter cookie"
+                required="required">
+        </div>
+        <div class="form-group">
+            <label for="authuserInput">x-goog-authuser</label>
+            <select class="form-select" name='x_goog_authuser' id="authuserInput" required="required">
+                <option selected>Select Value</option>
+                <option value="0">0</option>
+                <option value="1">1</option>
+            </select>
+        </div>
+        <!-- <input type="text" class="form-control" name='x_goog_authuser' id="authuserInput"
+            placeholder="Enter x-goog-authuser"> -->
+        <div class="form-group">
+            <label for="visitorIdInput">x-goog-visitor-id</label>
+            <input type="text" class="form-control" name='x_goog_visitor_id' id="visitorIdInput" required="required"
+                placeholder="Enter x-goog-visitor-id">
+        </div>
+        {% comment %} <textarea class='form-control' name='YTHeaders' placeholder='Youtube headers'></textarea>
+        {%endcomment %}
+        <button type='submit' class='btn btn-primary'> Enter </button>
+    </form>
+</div>
+<div class="alert alert-success d-none" role="alert" id='alert'>
+
+</div>
+<div class="d-none" role="alert" id='success-link'>
+    <a class=nav-link href="{% url 'home' %}"> Go back home </a>
+</div>
+
+{% comment %} <form method='POST'> {% csrf_token %}
+    {{form.as_p}}
+    <button type='submit' class='btn btn-primary'> Enter </button>
+</form> {% endcomment %}
+<script>
+    function handleErrorAlert(type, message = null) {
+        if (type == 'success') {
+            document.getElementById('alert').classList.add("alert-success")
+            document.getElementById('alert').classList.remove("alert-danger")
+            document.getElementById('alert').innerHTML = "Successfully submitted headers"
+            document.getElementById('alert').classList.remove("d-none")
+            document.getElementById('success-link').classList.remove("d-none")
+        } else if (type == 'error') {
+            document.getElementById('alert').classList.remove("alert-success")
+            document.getElementById('alert').classList.add("alert-danger")
+            document.getElementById('alert').classList.remove("d-none")
+            document.getElementById('alert').innerHTML = message
+        }
+    }
+    function handleHeadersForm(event) {
+        event.preventDefault()
+        const headerForm = event.target
+        const headerFormData = new FormData(headerForm)
+        const endpoint = headerForm.getAttribute("action")
+        const method = headerForm.getAttribute("method")
+        const responseType = 'json'
+
+        const xhr = new XMLHttpRequest()
+        xhr.open(method, endpoint)
+        xhr.setRequestHeader("HTTP_X_REQUESTED_WITH", "XMLHttpRequest")
+        xhr.setRequestHeader("X-Requested-With", "XMLHttpRequest")
+        xhr.responseType = responseType
+        xhr.onload = function () {
+            const serverResponse = xhr.response
+            console.log("server response", serverResponse)
+            if (xhr.status === 201) {
+                headerForm.reset()
+                handleErrorAlert("success")
+            } else if (xhr.status === 400) {
+                headerForm.reset()
+                handleErrorAlert("error", serverResponse["__all__"])
+            }
+        }
+        xhr.send(headerFormData)
+        // console.log(event)
+    }
+
+    const headersFormEl = document.getElementById("headers-form")
+    headersFormEl.addEventListener("submit", handleHeadersForm)
+        
+</script>
+{% endblock content %}
