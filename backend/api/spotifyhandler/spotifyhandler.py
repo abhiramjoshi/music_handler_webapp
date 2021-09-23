@@ -1,7 +1,6 @@
 #authenticate and create a class that will allow api calls.
 import requests
 from api.utils import *
-from ytmusicapi.helpers import AuthenticationError
 import json
 
 class SpotifyHandler:

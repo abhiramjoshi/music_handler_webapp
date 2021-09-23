@@ -1,7 +1,4 @@
-from ytmusicapi import YTMusic, setup
-import requests
-from ytmusicapi.helpers import AuthenticationError
-from ytmusicapi.parsers import playlists
+from ytmusicapi import YTMusic
 from api.utils import *
 #Create a YTMusic authenticated user class. Goal is to return JSON representations of playlists, songs, and other things.
 #Youtube music already handles the authentication, important things here are cookie and google visitor id.

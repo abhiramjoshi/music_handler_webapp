@@ -12,6 +12,9 @@ class NoTokenException(Exception):
 class HeadersAuthenticationError(Exception):
     pass
 
+class AuthenticationError(Exception):
+    pass
+
 def stringbase64encode(message:str):
     bytes = message.encode()
     b64 = base64.b64encode(bytes)
