@@ -10,25 +10,42 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/3.2/ref/settings/
 """
 import os
+import io
+import environ
+from google.cloud import secretmanager
 from pathlib import Path
-from .secrets import *
+#from .secrets import *
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+env = environ.Env(DEBUG=(bool, True))
+env_file = os.path.join(BASE_DIR, ".env")
 
+if os.environ.get("GOOGLE_CLOUD_PROJECT", None):
+    # Pull secrets from Secret Manager
+    project_id = os.environ.get("GOOGLE_CLOUD_PROJECT")
+    
+    client = secretmanager.SecretManagerServiceClient()
+    settings_name = os.environ.get("SETTINGS_NAME", "django_settings")
+    name = f"projects/{project_id}/secrets/{settings_name}/versions/latest"
+    payload = client.access_secret_version(name=name).payload.data.decode("UTF-8")
+
+    env.read_env(io.StringIO(payload))
+else:
+    raise Exception("No local .env or GOOGLE_CLOUD_PROJECT detected. No secrets found.")
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/3.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = SQLITE_KEY
-SPOTIFY_CLIENT_ID = SPOTIFY_CLIENT_ID
-SPOTIFY_CLIENT_SECRET = SPOTIFY_CLIENT_SECRET
+SECRET_KEY = env('SECRET_KEY')
+SPOTIFY_CLIENT_ID = env('SPOTIFY_CLIENT_ID')
+SPOTIFY_CLIENT_SECRET = env('SPOTIFY_CLIENT_SECRET')
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = env('DEBUG')
 
-ALLOWED_HOSTS = ['127.0.0.1']
+ALLOWED_HOSTS = ["*"]
 
 
 # Application definition
@@ -80,28 +97,51 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/3.2/ref/settings/#databases
 
-DATABASES = {
-    'default': {
+DATABASES = {'default': env.db()}
 
-        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+if bool(env('USE_CLOUD_PROXY')):
+    
+    DATABASES['default']['HOST'] = '127.0.0.1'
+    DATABASES['default']['PORT'] = 5432
+else:
+    DATABASES = {
+        'default': {
 
-        'NAME': POSTGRES['DB_NAME'],
+            'ENGINE': 'django.db.backends.postgresql_psycopg2',
 
-        'USER': POSTGRES['DB_USER'],
+            'NAME': env('DB_NAME'),
 
-        'PASSWORD': POSTGRES['DB_PASSWORD'],
+            'USER': env('DB_USER'),
 
-        'HOST': POSTGRES['HOST'],
+            'PASSWORD': env('DB_PASSWORD'),
 
-        'PORT': POSTGRES['PORT'],
+            'HOST': env('HOST'),
 
-    },
+            'PORT': env('PORT'),
 
-    # 'default': {
-    #     'ENGINE': 'django.db.backends.sqlite3',
-    #     'NAME': BASE_DIR / 'db.sqlite3',
-    # }
-}
+        },
+        # 'default': {
+
+        #     'ENGINE': 'django.db.backends.postgresql_psycopg2',
+
+        #     'NAME': POSTGRES['DB_NAME'],
+
+        #     'USER': POSTGRES['DB_USER'],
+
+        #     'PASSWORD': POSTGRES['DB_PASSWORD'],
+
+        #     'HOST': POSTGRES['HOST'],
+
+        #     'PORT': POSTGRES['PORT'],
+
+        # },
+
+        # 'default': {
+        #     'ENGINE': 'django.db.backends.sqlite3',
+        #     'NAME': BASE_DIR / 'db.sqlite3',
+
+        # }
+    }
 LOGIN_REDIRECT_URL = '/'
 
 AUTH_USER_MODEL = 'api.Profile'
@@ -141,7 +181,9 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.2/howto/static-files/
 
-STATIC_URL = '/static/'
+STATIC_ROOT = "static"
+STATIC_URL = "/static/"
+STATICFILES_DIRS = []
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/3.2/ref/settings/#default-auto-field
