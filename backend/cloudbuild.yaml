@@ -1,0 +1,4 @@
+steps:
+- name: "gcr.io/cloud-builders/gcloud" #selects the cloud-builder gcloud terminal
+  args: ["app", "deploy"] #tells the gcloud terminal to deploy app
+timeout: "1600s"

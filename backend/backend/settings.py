@@ -19,7 +19,7 @@ from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-env = environ.Env(DEBUG=(bool, True))
+env = environ.Env(DEBUG=(bool, False))
 env_file = os.path.join(BASE_DIR, ".env")
 
 if os.environ.get("GOOGLE_CLOUD_PROJECT", None):
@@ -32,6 +32,8 @@ if os.environ.get("GOOGLE_CLOUD_PROJECT", None):
     payload = client.access_secret_version(name=name).payload.data.decode("UTF-8")
 
     env.read_env(io.StringIO(payload))
+elif os.path.isfile(env_file):
+    env.read_env(env_file)
 else:
     raise Exception("No local .env or GOOGLE_CLOUD_PROJECT detected. No secrets found.")
 
@@ -45,7 +47,10 @@ SPOTIFY_CLIENT_SECRET = env('SPOTIFY_CLIENT_SECRET')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env('DEBUG')
 
-ALLOWED_HOSTS = ["*"]
+ALLOWED_HOSTS = [
+    "playlists-webapp.nn.r.appspot.com",
+    "127.0.0.1"
+]
 
 
 # Application definition
@@ -99,49 +104,49 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 
 DATABASES = {'default': env.db()}
 
-if bool(env('USE_CLOUD_PROXY')):
-    
-    DATABASES['default']['HOST'] = '127.0.0.1'
-    DATABASES['default']['PORT'] = 5432
-else:
-    DATABASES = {
-        'default': {
+if os.getenv("USE_CLOUD_SQL_AUTH_PROXY", None):
+    DATABASES["default"]["HOST"] = "127.0.0.1"
+    DATABASES["default"]["PORT"] = 5432
 
-            'ENGINE': 'django.db.backends.postgresql_psycopg2',
+# else:
+#     DATABASES = {
+#         'default': {
 
-            'NAME': env('DB_NAME'),
+#             'ENGINE': 'django.db.backends.postgresql_psycopg2',
 
-            'USER': env('DB_USER'),
+#             'NAME': env('DB_NAME'),
 
-            'PASSWORD': env('DB_PASSWORD'),
+#             'USER': env('DB_USER'),
 
-            'HOST': env('HOST'),
+#             'PASSWORD': env('DB_PASSWORD'),
 
-            'PORT': env('PORT'),
+#             'HOST': env('HOST'),
 
-        },
-        # 'default': {
+#             'PORT': env('PORT'),
 
-        #     'ENGINE': 'django.db.backends.postgresql_psycopg2',
+#         },
+#         # 'default': {
 
-        #     'NAME': POSTGRES['DB_NAME'],
+#         #     'ENGINE': 'django.db.backends.postgresql_psycopg2',
 
-        #     'USER': POSTGRES['DB_USER'],
+#         #     'NAME': POSTGRES['DB_NAME'],
 
-        #     'PASSWORD': POSTGRES['DB_PASSWORD'],
+#         #     'USER': POSTGRES['DB_USER'],
 
-        #     'HOST': POSTGRES['HOST'],
+#         #     'PASSWORD': POSTGRES['DB_PASSWORD'],
 
-        #     'PORT': POSTGRES['PORT'],
+#         #     'HOST': POSTGRES['HOST'],
 
-        # },
+#         #     'PORT': POSTGRES['PORT'],
 
-        # 'default': {
-        #     'ENGINE': 'django.db.backends.sqlite3',
-        #     'NAME': BASE_DIR / 'db.sqlite3',
+#         # },
 
-        # }
-    }
+#         # 'default': {
+#         #     'ENGINE': 'django.db.backends.sqlite3',
+#         #     'NAME': BASE_DIR / 'db.sqlite3',
+
+#         # }
+#     }
 LOGIN_REDIRECT_URL = '/'
 
 AUTH_USER_MODEL = 'api.Profile'
