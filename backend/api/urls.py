@@ -14,4 +14,6 @@ urlpatterns = [
     path('authorize/YTMusic', views.YT_get_headers, name='ytmusic_authorization'),
     path('YTMusic/landing/', views.YTRequests.as_view(), name='ytmusic_landing'),
     path('YTMusic/playlists/', views.YT_playlists, name='ytmusic_playlists'),
+    path('merge/', views.merge.as_view(), name='merge'),
+    path('transfer/', views.tranfer, name='transfer')
 ]

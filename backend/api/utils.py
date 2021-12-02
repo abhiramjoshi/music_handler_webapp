@@ -46,7 +46,10 @@ def standardPlaylistJSON(playlist_objects, keys = ['id', 'name', 'description', 
         try:
             pl['image'] = playlist['thumbnails'][-1]['url']
         except KeyError:
-            pl['image'] = playlist['images'][0]['url']
+            try:    
+                pl['image'] = playlist['images'][0]['url']
+            except IndexError:
+                print(playlist)
 
         standard_pls.append(pl)
     

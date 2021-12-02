@@ -10,7 +10,7 @@ from .spotifyhandler.spotify_auth import *
 from .spotifyhandler.spotifyhandler import *
 from .ytmusichandler.ytmusichandler import *
 from .utils import *
-from .forms import YTHeadersForm
+from .forms import MergePlaylists, YTHeadersForm
 import datetime
 
 
@@ -22,6 +22,51 @@ def test(request: HttpRequest):
     now = datetime.datetime.now()
     html = "<html><body>It is now %s.</body></html>" % now
     return HttpResponse(html)
+
+class merge(TemplateView, LoginRequiredMixin):
+    def post(self, request: HttpRequest, *args, **kwargs):
+        user = self.request.user
+        form = MergePlaylists(request.POST or None)
+        if form.is_valid():
+            if request.is_ajax():
+                if form.cleaned_data["platform"] == 'spotify':
+                    handler = SpotifyHandler(user.SpotifyAPIKey)
+                if form.cleaned_data["platform"] == 'ytmusic':
+                    handler = YTMusicHandler(user.YTHeaders)
+                if form.cleaned_data["existing_playlist"]:
+                    print(True)
+                        
+                if not form.cleaned_data["existing_playlist"]:
+                    print(False)
+                    handler.merge_playlists(
+                        form.cleaned_data["playlists_to_merge"],
+                        new_playlist_name=form.cleaned_data["new_playlist_name"],
+                        new_playlist_description=form.cleaned_data["new_playlist_description"]
+                    )
+                return JsonResponse(data = request.POST, status=201, safe=False)
+        return HttpResponse(request.POST)
+        # # return a form that allows you to select the playlists that you want to merge
+        # next_url = request.POST.get('next') or None
+        # print('next_url', request.POST)
+        # form = YTHeadersForm(request.POST or None)
+        # #form = YTHeadersForm(request.POST or None, instance=user)
+        # #print('Cleaned data  \n', form.cleaned_data)
+        # if form.is_valid():
+        #     if request.is_ajax():
+        #         return JsonResponse(data = json.loads(form.cleaned_data["YTHeaders"]), status=201, safe=False)
+        #     if next_url != None:
+        #         return redirect(next_url) 
+        #     form = YTHeadersForm()
+        # elif form.errors:
+        #     if request.is_ajax():
+        #         print("Here")
+        #         return JsonResponse(data = form.errors, status=400, safe=False)
+    def get(self, request: HttpRequest, *args, **kwargs):
+        return render(request, 'playlist_form.html', context={'platform': request.GET.get('platform')})
+
+
+def tranfer(request: HttpRequest):
+    return HttpResponse(request.GET.get('platform'))
 
 def callback(request: HttpRequest):
     code = request.GET.get('code')
@@ -44,7 +89,7 @@ def spotify_playlists(request:HttpRequest):
     user = request.user
     try:
         handler = SpotifyHandler(user.SpotifyAPIKey)
-        playlists = handler.get_playlists()
+        playlists = handler.get_all_playlists()
         playlists = standardPlaylistJSON(playlists)
         return JsonResponse(playlists, safe=False, json_dumps_params={'indent': 4})
     except RefreshRequired:
@@ -138,7 +183,7 @@ def YT_playlists(request: HttpRequest, *args, **kwargs):
     try:
         #Make a get headers function for YTMusic in the handler class
         handler = YTMusicHandler(user.YTHeaders)
-        playlists = handler.get_playlist()
+        playlists = handler.get_all_playlists()
         playlists = standardPlaylistJSON(playlists)
         #return render(request, "playlist_grid.html", context={'playlists': playlists, 'platform': 'YTMusic'})
         return JsonResponse(playlists, safe=False, json_dumps_params={'indent': 4})
