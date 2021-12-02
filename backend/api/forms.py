@@ -1,3 +1,4 @@
+from django.forms.forms import Form
 from . import utils
 from django import forms
 from django.db.models import fields
@@ -28,6 +29,48 @@ class YTHeadersForm(forms.Form):
             #print(str(e))
             raise forms.ValidationError(str(e))
 
+class MergePlaylists(forms.Form):
+    #Send api request to get the actual form
+    platform = forms.CharField(required=True)
+    existing_playlist = forms.BooleanField(initial=False, required=False)
+    new_playlist_name = forms.CharField(required=False)
+    new_playlist_description = forms.CharField(required=False)
+    merge_playlist_id = forms.CharField(required=False)
+    playlists_to_merge = forms.CharField()
+
+    def clean(self):
+        data = {
+            "platform": self.cleaned_data.get("platform"),
+            "existing_playlist": self.cleaned_data.get("existing_playlist", False),
+            "new_playlist_name": self.cleaned_data.get("new_playlist_name", ''),
+            "new_playlist_description": self.cleaned_data.get("new_playlist_description", ''),
+            "merge_playlist_id": self.cleaned_data.get("merge_playlist_id", ''),
+            "playlists_to_merge": self.cleaned_data.get("playlists_to_merge",  '')
+        }
+        data["playlists_to_merge"] = data["playlists_to_merge"].split(',')
+        print(data)
+        try:
+            if data["existing_playlist"]:
+                if data["merge_playlist_id"] == '':
+                    raise forms.ValidationError(
+                        _('Playlist to merge needs to be selected'),
+                        code='invalid'
+                    )
+            elif not data["existing_playlist"]:
+                print('not existing')
+                if data["new_playlist_name"] == '':
+                    raise forms.ValidationError(
+                        _('New playlist requires a name'),
+                        code='invalid'
+                    )
+            print('returning data: ', data)
+            return data
+        except Exception as e:
+            raise forms.ValidationError(str(e))
+
+
+
+    #plalists_to_merge = forms.MultipleChoiceField(required=True, label='playlists_to_merge', choices=playlists)
 # class YTHeadersForm(forms.ModelForm):
 #     # cookie = forms.CharField()
 #     # x_goog_authuser = forms.CharField()
