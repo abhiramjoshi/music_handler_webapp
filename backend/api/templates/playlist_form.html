@@ -1,0 +1,283 @@
+{% extends 'base_generic.html' %}
+
+{% block content %}
+<div id='playlist-select' class="container">
+    <div id=playlist class="row row-cols-1 row-cols-md-2 g-4">
+      <div class="d-flex justify-content-center">
+        <div class="spinner-grow m-5" style="width: 6rem; height: 6rem;" role="status">
+          <span class="sr-only"></span>
+        </div>
+      </div>
+    </div>
+</div>
+<div id="playlistAlert" class="alert alert-danger d-flex align-items-center d-none" role="alert">
+  <div>
+    <i class="bi bi-exclamation-triangle-fill"></i>
+    No playlists selected
+  </div>
+</div>
+<form id="merge-form" class = "contianer pl-5 pt-5 d-none" role="status" method="POST" action="">
+  {% csrf_token %}
+  <div class="form-group row mb-3">
+    <label class="form-check-label col-sm-2" for="flexSwitchCheckDefault">Merge to existing playlist</label>
+    <div class="form-check form-switch col-sm-6 mx-2">
+      <input name='existing_playlist' class="form-check-input" type="checkbox" id="flexSwitchCheckDefault">
+    </div>
+  </div>
+  <div class="form-group row my-2" id='newPLName'>
+    <label class="col-sm-2" for="playlistName">Playlist Name</label>
+    <div class="col-sm-6">
+      <input name="new_playlist_name" type="text" class="form-control" id="playlistName" aria-describedby="playlistNameHelp" placeholder="Enter new playlist name">
+      <small id="playlistNameHelp" class="form-text text-muted">Enter the name of the new merged playlist</small>
+    </div>
+  </div>
+  <div class="form-group row my-2" id='newPlDescription'>
+    <label class="col-sm-2" for="playlistDescription">Description</label>
+    <div class="col-sm-6">
+      <input name="new_playlist_description" type="text" class="form-control" id="playlistDescription" placeholder="Description">
+    </div>
+  </div>
+  <div class="form-group row my-2 d-none" id='mergePlSelect'>
+    <label class="col-sm-2" for="mergePlSelectBox">Select playlist to merge into</label>
+    <div class="col-sm-6">
+      <select name="merge_playlist_id" class="form-select" aria-label="Default select example" id="mergePlSelectBox">
+        <option selected>Select Playlist</option>
+      </select>
+    </div>
+  </div>
+  <div class="form-group row my-5">
+    <div>
+      <button type="submit" class="btn btn-primary mb-3 col-sm-1" id="submitPlaylistMerge">Merge</button>
+    </div>
+  </div>
+</form>
+
+<div class="alert alert-success d-none m-2" role="alert" id='alert'>
+
+</div>
+<div class="d-none" role="alert" id='success-link'>
+    <a class=nav-link href="{% url 'home' %}"> Go back home </a>
+</div>
+
+<script>
+  let playlistEl = document.getElementById("playlist")
+  const playlistFormEl = document.getElementById("playlist-select")
+  let mergeFormEl = document.getElementById("merge-form")
+  let serverResponse = null
+  let loaded = false
+  let playlistArray = []
+  let selectedPlaylists = {}
+  const platform = '{{platform}}'
+
+  const loadPlaylists = function (playlistElement, formElement, playlistArray) {
+    return new Promise((myresolve, myreject) => {
+      const xhr = new XMLHttpRequest() //declaring a new class of XMLHttpRequest
+    const method = 'GET'
+    let url = null
+     // following lines determine what platform the request is coming for. This allows us to reuse this page rather than make a new one for every platform
+    if ('{{platform}}' == 'spotify') {
+
+      url = '/api/spotify/playlists'
+    } else if ('{{platform}}' == 'ytmusic') {
+      url = '/api/YTMusic/playlists'
+    } else {
+      const url = null
+    }
+    console.log(url) // specify the api url that will be visited based on the platform 
+    const responseType = 'json' //sepcify response type expected
+    xhr.responseType = responseType
+    xhr.open(method, url) //atually getting the json here. The info is aquired through the relevant playlist methods YTMusic_playlists or Spotify_playlists
+    xhr.onload = function () {
+      serverResponse = xhr.response
+      let finalElement = ""
+      if (serverResponse == null) {
+        if ('{{platform}}' == 'spotify') {
+          location.reload()
+        } else if ('{{platform}}' == 'ytmusic') {
+          finalElement = "Error validating request to"
+          document.getElementById('success-link').classList.remove("d-none")
+        }
+        myreject('Server Error')
+      } else {
+        // format every element of the playlist and add it into the final element that will be displayed
+        for (let i = 0; i < serverResponse.length; i++) {
+          //playlistArray.push(serverResponse[i])
+          let currPlaylist = formatPlaylists(serverResponse[i])
+          finalElement += currPlaylist
+        }
+      }
+
+      //playlistElement.classList.remove("spinner-border")
+      playlistElement.innerHTML = ''
+      playlistElement.innerHTML += finalElement
+      formElement.innerHTML += '<button type="button" class="btn btn-primary my-5" id="selectplaylists">Merge Playlistst</button>'
+      myresolve(xhr.response)
+      console.log('here at end of async')
+    }
+    xhr.send()
+    })
+  }
+
+  function formatPlaylists(playlist) {
+    console.log(playlist.id)
+    let formattedPlaylist = `<div class="col"><input type="checkbox" class="btn-check" id="btn-check-outlined`+playlist.id+`" autocomplete="on">
+                            <label class="btn btn-outline-secondary" for="btn-check-outlined` +playlist.id+ `"><img class="img-thumbnail" src=` + playlist.image + ` 
+                          alt="Card image cap" style="width:200px;height:200px;"><div class"col-sm-7 card-title">`+ playlist.title + `</div></label><br></div>`
+    return formattedPlaylist
+  }
+  
+  function handleErrorAlert(type, message = null) {
+    if (type == 'success') {
+      document.getElementById('alert').classList.add("alert-success")
+      document.getElementById('alert').classList.remove("alert-danger")
+      document.getElementById('alert').innerHTML = "Successfully submitted headers"
+      document.getElementById('alert').classList.remove("d-none")
+      document.getElementById('success-link').classList.remove("d-none")
+    } else if (type == 'error') {
+      document.getElementById('alert').classList.remove("alert-success")
+      document.getElementById('alert').classList.add("alert-danger")
+      document.getElementById('alert').classList.remove("d-none")
+      document.getElementById('alert').innerHTML = message
+    }
+  }
+  
+  function formatSelectMenuOption(playlist) {
+    let formattedOption = `<option value="`+playlist.id+`">`+playlist.title+`</option>`
+    return formattedOption
+  }
+
+  function handlePLaylistSelection(event) {
+    const selectMenu = document.getElementById('mergePlSelectBox')
+    for (let i = 0; i < serverResponse.length; i++){
+      const playlist = serverResponse[i]
+      const id = 'btn-check-outlined' + playlist.id
+      let playlist_id = playlist.id
+      console.log(id)
+      if (document.getElementById(id).checked){
+        console.log(playlist)
+        selectedPlaylists[playlist.id] = JSON.stringify({'title': playlist.title, 'tracks':playlist.tracks})
+        selectMenu.innerHTML += formatSelectMenuOption(playlist)
+      }
+    }
+    if (Object.keys(selectedPlaylists).length < 2){
+      document.getElementById('playlistAlert').classList.remove('d-none')
+      selectedPlaylists = {}
+    }else{
+      document.getElementById('playlistAlert').classList.add('d-none')
+      mergeFormEl.classList.remove("d-none")
+      console.log(selectedPlaylists)
+    }
+  }
+
+  // function handlePlaylistsForm(event) {
+  //   event.preventDefault()
+  //   const playlistForm = event.target
+  //   let playlistFormData = new FormData(playlistForm)
+  //   let returnData = {'csrfmiddlewaretoken': '{{csrf_token}}'}
+  //   const endpoint = playlistForm.getAttribute("action")
+  //   const method = playlistForm.getAttribute("method")
+  //   const responseType = 'json'
+  //   const xhr = new XMLHttpRequest()
+  //   xhr.open(method, endpoint)
+  //   xhr.setRequestHeader("HTTP_X_REQUESTED_WITH", "XMLHttpRequest")
+  //   xhr.setRequestHeader("X-Requested-With", "XMLHttpRequest")
+  //   xhr.setRequestHeader("X-CSRFToken", "{{csrf_token}}")
+  //   xhr.responseType = responseType
+    
+  //   for (let i = 0; i < serverResponse.length; i++){
+  //     const playlist = serverResponse[i]
+  //     const id = 'btn-check-outlined' + playlist.id
+  //     let playlist_id = playlist.id
+  //     console.log(id)
+  //     if (document.getElementById(id).checked){
+  //       console.log(playlist)
+  //       playlistFormData.append(playlist.id, JSON.stringify({'title': playlist.title, 'tracks':playlist.tracks}))
+  //     }
+  //   }
+    
+  //   xhr.onload = function () {
+  //     const serverResponse = xhr.response
+  //     console.log("server response", serverResponse)
+  //     if (xhr.status === 201) {
+  //       playlistForm.reset()
+  //       handleErrorAlert("success")
+  //     } else if (xhr.status === 400) {
+  //       playlistForm.reset()
+  //       handleErrorAlert("error", serverResponse["__all__"])
+  //     }
+  //   }
+  //   xhr.send(playlistFormData)
+  //   console.log(event)
+  // }
+
+  function hideMergeForm(event) {
+    if (document.getElementById('flexSwitchCheckDefault').checked) {
+      //console.log("Toggle Checked")
+      document.getElementById('newPLName').classList.add('d-none')
+      document.getElementById('newPlDescription').classList.add('d-none')
+      document.getElementById('mergePlSelect').classList.remove('d-none')
+    }else{
+      //console.log("Toggle unchecked")
+      document.getElementById('newPLName').classList.remove('d-none')
+      document.getElementById('newPlDescription').classList.remove('d-none')
+      document.getElementById('mergePlSelect').classList.add('d-none') 
+    }
+  }
+
+  function handleMergeForm(event) {
+      event.preventDefault()
+      const mergeForm = event.target
+      const mergeFormData = new FormData(mergeForm)
+      mergeFormData.append('platform', platform)
+      mergeFormData.append('playlists_to_merge', Object.keys(selectedPlaylists))    
+      const endpoint = mergeForm.getAttribute("action")
+      const method = mergeForm.getAttribute("method")
+      const responseType = 'json'
+
+      const xhr = new XMLHttpRequest()
+      xhr.open(method, endpoint)
+      xhr.setRequestHeader("HTTP_X_REQUESTED_WITH", "XMLHttpRequest")
+      xhr.setRequestHeader("X-Requested-With", "XMLHttpRequest")
+      xhr.responseType = responseType
+      xhr.onload = function () {
+          const serverResponse = xhr.response
+          console.log("server response", serverResponse)
+          if (xhr.status === 201) {
+              mergeForm.reset()
+              handleErrorAlert("success")
+          } else if (xhr.status === 400) {
+              mergeForm.reset()
+              handleErrorAlert("error", serverResponse["__all__"])
+          }
+      }
+      xhr.send(mergeFormData)
+      // console.log(event)
+  }
+  mergeFormEl.addEventListener("submit", handleMergeForm)
+  async function setSelectButton() {
+    await loadPlaylists(playlistEl, playlistFormEl, playlistArray)
+    document.getElementById("selectplaylists").addEventListener("click", handlePLaylistSelection)
+  }
+  setSelectButton()
+  document.getElementById('flexSwitchCheckDefault').addEventListener("click", hideMergeForm)
+</script>
+
+<style>
+  .loader {
+    border: 16px solid #f3f3f3; /* Light grey */
+    border-top: 16px solid #3498db; /* Blue */
+    border-radius: 50%;
+    width: 120px;
+    height: 120px;
+    animation: spin 2s linear infinite;
+  }
+
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+
+</style>
+
+
+{% endblock content %} 

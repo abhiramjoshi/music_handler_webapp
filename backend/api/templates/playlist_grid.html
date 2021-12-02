@@ -1,7 +1,15 @@
 {% extends 'base_generic.html' %}
 
 {% block content %}
-<div id=playlist class="row row-cols-1 row-cols-md-4 loader">
+<div id=nav-buttons> </div>
+<div id=playlist class="row row-cols-1 row-cols-md-4">
+  <div></div>
+  <div class="d-flex justify-content-center">
+    <div class="spinner-grow m-5" style="width: 6rem; height: 6rem;" role="status">
+      <span class="sr-only"></span>
+    </div>
+  </div>
+  <div></div>
   <!-- {% for playlist in playlists %}
 <div class="card m-2 bg-light" style="width: 18rem;">
 {% if platform == 'Spotify' %}
@@ -32,11 +40,13 @@
 
 <script>
   let playlistEl = document.getElementById("playlist")
+  let navButtonsEl = document.getElementById("nav-buttons")
   let loaded = false
-  const loadPlaylists = function (playlistElement) {
+  const loadPlaylists = function (playlistElement, navElement) {
     const xhr = new XMLHttpRequest() //declaring a new class of XMLHttpRequest
     const method = 'GET'
     let url = null
+    const platform = '{{platform}}' // following lines determine what platform the request is coming for. This allows us to reuse this page rather than make a new one for every platform
     if ('{{platform}}' == 'spotify') {
 
       url = '/api/spotify/playlists'
@@ -45,10 +55,13 @@
     } else {
       const url = null
     }
-    console.log(url)
-    const responseType = 'json'
+    console.log(url) // specify the api url that will be visited based on the platform 
+    const responseType = 'json' //sepcify response type expected
+    const playlistButtons = `<a href="{% url 'merge' %}?platform=var_platform" class="btn btn-primary">Merge playlists</a>
+                            <a href="{% url 'transfer' %}?platform=var_platform" class="btn btn-primary">Transfer playlists</a>
+                            `.replace('var_platform', platform.toString()) //static playlist buttons
     xhr.responseType = responseType
-    xhr.open(method, url)
+    xhr.open(method, url) //atually getting the json here. The info is aquired through the relevant playlist methods YTMusic_playlists or Spotify_playlists
     xhr.onload = function () {
       const serverResponse = xhr.response
       let finalElement = ""
@@ -60,15 +73,17 @@
           document.getElementById('success-link').classList.remove("d-none")
         }
       } else {
-
+        // format every element of the playlist and add it into the final element that will be displayed
         for (let i = 0; i < serverResponse.length; i++) {
           let currPlaylist = formatPlaylists(serverResponse[i])
           finalElement += currPlaylist
         }
       }
 
-      playlistElement.classList.remove("loader")
-      playlistElement.innerHTML = finalElement
+      //playlistElement.classList.remove("loader")
+      playlistElement.innerHTML = ''
+      navElement.innerHTML += playlistButtons
+      playlistElement.innerHTML += finalElement
 
     }
     xhr.send()
@@ -82,7 +97,7 @@
   }
 
 
-  loadPlaylists(playlistEl)
+  loadPlaylists(playlistEl, navButtonsEl)
 </script>
 
 <style>
